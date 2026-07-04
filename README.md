@@ -54,6 +54,7 @@ Einige Seiten des Wikis werden automatisiert über Skripte und API‑Funktionen 
 - **Quellenverzeichnis**  
   https://wiki.isms-ratgeber.info/wiki/Quellenverzeichnis  
   *Ermöglicht die zentrale Pflege und konsistente Nutzung externer Quellen im gesamten Wiki.*
+Speziell diese Schripte und Konfigurationen sollen hier im Github weiter entwickelt werden.
 
 ## Funktionen des Wikis
 

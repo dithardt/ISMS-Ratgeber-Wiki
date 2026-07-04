@@ -1,6 +1,6 @@
 # ISMS-Ratgeber Wiki
 
-Das **ISMS-Ratgeber Wiki** ist ein Mediawiki-basiertes Nachschlagewerk für den systematischen Aufbau, Betrieb und die kontinuierliche Verbesserung eines Informationssicherheitsmanagementsystems (ISMS).
+Das **[ISMS-Ratgeber Wiki](https://wiki.isms.ratgeber.info)** ist ein Mediawiki-basiertes Nachschlagewerk für den systematischen Aufbau, Betrieb und die kontinuierliche Verbesserung eines Informationssicherheitsmanagementsystems (ISMS).
 
 Es richtet sich an Verantwortliche in Organisationen, die Informationssicherheit praxisnah, nachvollziehbar und strukturiert umsetzen wollen – insbesondere mit Bezug zu ISO/IEC 27001, BSI-Grundschutz, Datenschutzanforderungen und angrenzenden Governance-, Risk- und Compliance-Themen.
 

@@ -14,6 +14,47 @@ Das Wiki verfolgt folgende Ziele:
 - Verbindung von normativen Anforderungen mit praktischer Umsetzung,
 - Schaffung einer zentralen Wissensbasis für Teams, Projekte und Verantwortliche.
 
+### Warum GitHub?
+
+Dieses Repository ergänzt das ISMS‑Ratgeber Wiki um die technische Basis für dessen Weiterentwicklung. GitHub dient insbesondere zur **Erstellung, Pflege und Versionierung von Skripten, Modulen und Konfigurationen**, die das MediaWiki um zusätzliche Funktionen erweitert. Dazu gehören unter anderem:
+
+- eigene MediaWiki‑Module und Lua‑Skripte,
+- Vorlagen und Parserfunktionen zur strukturierten Darstellung von Inhalten,
+- Automatisierungen für wiederkehrende Aufgaben,
+- Konfigurationsdateien für Erweiterungen und Integrationen,
+- experimentelle Funktionen, die vor der produktiven Nutzung getestet werden sollen.
+
+Durch die Nutzung von GitHub können technische Änderungen transparent nachverfolgt, gemeinsam weiterentwickelt und langfristig stabil gepflegt werden. Gleichzeitig entsteht eine klare Trennung zwischen **Inhalts‑Wiki** und **Technik‑Repository**, was Wartbarkeit und Qualität erhöht.
+
+### Thematische und technische Einstiegsseiten
+
+Das ISMS‑Ratgeber Wiki bietet sowohl fachliche Schwerpunkte als auch technisch unterstützte Übersichtsseiten, die den strukturierten Zugang zu zentralen Themen erleichtern.
+
+#### Themenschwerpunkte
+
+Die folgenden Einstiegsseiten bündeln Inhalte zu wesentlichen Bereichen der Informationssicherheit und ermöglichen einen schnellen thematischen Einstieg:
+
+- **BSI Grundschutz++**  
+  https://wiki.isms-ratgeber.info/wiki/Grundschutz%2B%2B
+
+- **Datenschutz**  
+  https://wiki.isms-ratgeber.info/wiki/Datenschutz
+
+- **Künstliche Intelligenz**  
+  https://wiki.isms-ratgeber.info/wiki/K%C3%BCnstliche_Intelligenz
+
+#### Skriptgesteuerte Übersichtsseiten
+
+Einige Seiten des Wikis werden automatisiert über Skripte und API‑Funktionen erzeugt oder gepflegt. Sie dienen als technische Grundlage für Struktur, Konsistenz und zentrale Verwaltung von Quellen:
+
+- **Inhalts‑Übersicht**  
+  https://wiki.isms-ratgeber.info/wiki/Inhalt-%C3%9Cbersicht  
+  *Diese Seite wird täglich um 06:00 Uhr automatisiert über ein PHP‑Skript und die MediaWiki‑API aktualisiert.*
+
+- **Quellenverzeichnis**  
+  https://wiki.isms-ratgeber.info/wiki/Quellenverzeichnis  
+  *Ermöglicht die zentrale Pflege und konsistente Nutzung externer Quellen im gesamten Wiki.*
+
 ## Funktionen des Wikis
 
 Das Wiki soll insbesondere folgende Funktionen erfüllen:

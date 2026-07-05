@@ -1,17 +1,15 @@
 <?php
-declare(strict_types=1);
-
-/*
- * MediaWiki Seiteninventar -> Wiki-Seite "Inhalt-Ãœbersicht"
+/**
+ * Wiki-Seite "Inhalt-Übersicht"
  *
  * Funktionen:
- * - Liest alle Inhaltsseiten aus mehreren NamensrÃ¤umen per MediaWiki-API
- * - Ermittelt Titel, URL, LÃ¤nge, letzte Ã„nderung, letzten Bearbeitenden
- * - Optional: kurzer Textauszug Ã¼ber extracts
- * - Erstellt/aktualisiert die Wiki-Seite "Inhalt-Ãœbersicht"
+ * - Liest alle Inhaltsseiten aus mehreren Namensräumen per MediaWiki-API
+ * - Ermittelt Titel, Länge, letzte Änderung, letzten Bearbeitenden
+ * - Optional: kurzer Textauszug über extracts
+ * - Erstellt/aktualisiert die Wiki-Seite "Inhalt-Übersicht"
  *
  * Voraussetzungen:
- * - BotPassword oder API-fÃ¤higer Account mit Bearbeitungsrechten
+ * - BotPassword oder API-fähiger Account mit Bearbeitungsrechten
  * - cURL in PHP aktiviert
  *
  * Nutzung:
@@ -20,37 +18,37 @@ declare(strict_types=1);
  *
  * Sicherheit:
  * - Zugangsdaten nicht im Webroot ablegen
- * - Script bevorzugt per CLI ausfÃ¼hren
+ * - Script bevorzugt per CLI ausführen
  */
 
 // =========================
 // Konfiguration
 // =========================
-$apiEndpoint      = 'https://wiki.isms-ratgeber.info/api.php';
-$articleBase      = 'https://wiki.isms-ratgeber.info/wiki/';
-$targetPageTitle  = 'Inhalt-Ãœbersicht';
-$username         = 'Dirk@inhaltsuebersicht';
-$botPassword      = 't72c5ne88fpfs6jgnu75ktn6mj219lc2';
-$summary          = 'Automatisch erzeugte InhaltsÃ¼bersicht aktualisiert';
+$apiEndpoint = 'https://wiki.isms-ratgeber.info/api.php';
+$articleBase = 'https://wiki.isms-ratgeber.info/wiki/';
+$targetPageTitle = 'Inhalt-Übersicht';
+$username = 'Dirk@inhaltsuebersicht';
+$botPassword = 't72c5ne88fpfs6jgnu75ktn6mj219lc2';
+$summary = 'Automatisch erzeugte Inhaltsübersicht aktualisiert';
 
 $namespaces = [
-    0,    // Hauptnamensraum
-    3000, // Grundschutz
-    3010, // Datenschutz
-    3020, // Notfallmanagement
-    3030, // KI
-    3040, // KMU
+    0,
+    3000,
+    3010,
+    3020,
+    3030,
+    3040,
 ];
 
-$withExtracts     = false;
-$extractLength    = 180;
+$withExtracts = false;
+$extractLength = 180;
 $excludeRedirects = true;
-$markBotEdit      = true;
-$minorEdit        = false;
-$dryRun           = false; // true = nur Ausgabe, kein Schreiben ins Wiki
+$markBotEdit = true;
+$minorEdit = false;
+$dryRun = false;
 
 $namespaceLabels = [
-    0    => 'Hauptnamensraum',
+    0 => 'Hauptnamensraum',
     3000 => 'Grundschutz',
     3010 => 'Datenschutz',
     3020 => 'Notfallmanagement',
@@ -58,41 +56,48 @@ $namespaceLabels = [
     3040 => 'KMU',
 ];
 
-// =========================
-// Hilfsfunktionen
-// =========================
-function shorten(?string $text, int $maxLen = 180): string {
-    $text = trim((string)$text);
+function shorten(?string $text, int $maxLen = 180): string
+{
+    $text = trim((string) $text);
     if ($text === '') {
         return '';
     }
-    $text = preg_replace('/\\s+/u', ' ', $text);
+
+    $text = preg_replace('/\s+/u', ' ', $text) ?? '';
     if (mb_strlen($text) <= $maxLen) {
         return $text;
     }
-    return mb_substr($text, 0, $maxLen - 1) . 'â€¦';
+
+    return mb_substr($text, 0, $maxLen - 1) . '…';
 }
 
-function wikiEscape(string $text): string {
-    $text = str_replace(["\\r", "\\n"], ' ', $text);
+function wikiEscape(string $text): string
+{
+    $text = str_replace(["\r", "\n"], ' ', $text);
     return str_replace('|', '{{!}}', $text);
 }
 
-function buildArticleUrl(string $articleBase, string $title): string {
+function buildArticleUrl(string $articleBase, string $title): string
+{
     return $articleBase . str_replace('%2F', '/', rawurlencode(str_replace(' ', '_', $title)));
 }
 
-function getDisplayTitle(string $fullTitle): string {
+function getDisplayTitle(string $fullTitle): string
+{
     $parts = explode(':', $fullTitle, 2);
     return count($parts) === 2 ? $parts[1] : $fullTitle;
 }
 
-function httpRequest(string $url, array $postFields = null, array &$cookieJar = []): array {
+function httpRequest(string $url, ?array $postFields = null, array &$cookieJar = []): array
+{
     $ch = curl_init($url);
+    if ($ch === false) {
+        throw new RuntimeException('cURL konnte nicht initialisiert werden.');
+    }
 
     $headers = [
         'User-Agent: ISMS-Ratgeber-Inhalt-Uebersicht/1.0',
-        'Accept: application/json'
+        'Accept: application/json',
     ];
 
     curl_setopt_array($ch, [
@@ -119,7 +124,9 @@ function httpRequest(string $url, array $postFields = null, array &$cookieJar = 
 
     $response = curl_exec($ch);
     if ($response === false) {
-        throw new RuntimeException('cURL-Fehler: ' . curl_error($ch));
+        $error = curl_error($ch);
+        curl_close($ch);
+        throw new RuntimeException('cURL-Fehler: ' . $error);
     }
 
     $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -128,7 +135,7 @@ function httpRequest(string $url, array $postFields = null, array &$cookieJar = 
     $body = substr($response, $headerSize);
     curl_close($ch);
 
-    if (preg_match_all('/^Set-Cookie:\\s*([^=\\s]+)=([^;]*)/mi', $headerText, $matches, PREG_SET_ORDER)) {
+    if (preg_match_all('/^Set-Cookie:\s*([^=\s]+)=([^;]*)/mi', $headerText, $matches, PREG_SET_ORDER)) {
         foreach ($matches as $match) {
             $cookieJar[$match[1]] = $match[2];
         }
@@ -140,37 +147,42 @@ function httpRequest(string $url, array $postFields = null, array &$cookieJar = 
 
     $data = json_decode($body, true);
     if (!is_array($data)) {
-        throw new RuntimeException('UngÃ¼ltige JSON-Antwort: ' . $body);
+        throw new RuntimeException('Ungültige JSON-Antwort: ' . $body);
     }
 
     return $data;
 }
 
-function apiGet(array &$cookieJar, string $apiEndpoint, array $params): array {
+function apiGet(array &$cookieJar, string $apiEndpoint, array $params): array
+{
     $url = $apiEndpoint . '?' . http_build_query($params);
     return httpRequest($url, null, $cookieJar);
 }
 
-function apiPost(array &$cookieJar, string $apiEndpoint, array $params): array {
+function apiPost(array &$cookieJar, string $apiEndpoint, array $params): array
+{
     return httpRequest($apiEndpoint, $params, $cookieJar);
 }
 
-function getLoginToken(array &$cookieJar, string $apiEndpoint): string {
+function getLoginToken(array &$cookieJar, string $apiEndpoint): string
+{
     $data = apiGet($cookieJar, $apiEndpoint, [
         'action' => 'query',
         'meta' => 'tokens',
         'type' => 'login',
-        'format' => 'json'
+        'format' => 'json',
     ]);
 
     $token = $data['query']['tokens']['logintoken'] ?? null;
     if (!$token) {
         throw new RuntimeException('Login-Token konnte nicht abgerufen werden.');
     }
+
     return $token;
 }
 
-function login(array &$cookieJar, string $apiEndpoint, string $username, string $botPassword): void {
+function login(array &$cookieJar, string $apiEndpoint, string $username, string $botPassword): void
+{
     $loginToken = getLoginToken($cookieJar, $apiEndpoint);
 
     $data = apiPost($cookieJar, $apiEndpoint, [
@@ -178,7 +190,7 @@ function login(array &$cookieJar, string $apiEndpoint, string $username, string 
         'lgname' => $username,
         'lgpassword' => $botPassword,
         'lgtoken' => $loginToken,
-        'format' => 'json'
+        'format' => 'json',
     ]);
 
     $result = $data['login']['result'] ?? '';
@@ -187,17 +199,19 @@ function login(array &$cookieJar, string $apiEndpoint, string $username, string 
     }
 }
 
-function getCsrfToken(array &$cookieJar, string $apiEndpoint): string {
+function getCsrfToken(array &$cookieJar, string $apiEndpoint): string
+{
     $data = apiGet($cookieJar, $apiEndpoint, [
         'action' => 'query',
         'meta' => 'tokens',
-        'format' => 'json'
+        'format' => 'json',
     ]);
 
     $token = $data['query']['tokens']['csrftoken'] ?? null;
     if (!$token) {
         throw new RuntimeException('CSRF-Token konnte nicht abgerufen werden.');
     }
+
     return $token;
 }
 
@@ -263,6 +277,7 @@ function fetchPagesForNamespace(
         ];
 
         if ($withExtracts) {
+            $params['prop'] .= '|extracts';
             $params['exintro'] = 1;
             $params['explaintext'] = 1;
             $params['exchars'] = $extractLength;
@@ -270,48 +285,50 @@ function fetchPagesForNamespace(
 
         $data = apiGet($cookieJar, $apiEndpoint, $params);
 
-        if (!empty($data['query']['pages'])) {
-            foreach ($data['query']['pages'] as $page) {
-                if (!empty($page['missing']) || !empty($page['invalid'])) {
-                    continue;
-                }
+        if (empty($data['query']['pages'])) {
+            continue;
+        }
 
-                $title = $page['title'] ?? '';
-                $url   = $page['fullurl'] ?? buildArticleUrl($articleBase, $title);
-                $len   = $page['length'] ?? 0;
-
-                $lastChanged = '';
-                $author = '';
-                if (!empty($page['revisions'][0])) {
-                    $lastChanged = $page['revisions'][0]['timestamp'] ?? '';
-                    $author = $page['revisions'][0]['user'] ?? '';
-                }
-
-                $summary = '';
-
-                if (isset($page['description']) && trim((string)$page['description']) !== '') {
-                    $summary = trim((string)$page['description']);
-                } elseif (isset($page['pageprops']['shortdesc']) && trim((string)$page['pageprops']['shortdesc']) !== '') {
-                    $summary = trim((string)$page['pageprops']['shortdesc']);
-                }
-
-                $summary = shorten($summary, $extractLength);
-
-                $pages[] = [
-                    'title' => $title,
-                    'display_title' => getDisplayTitle($title),
-                    'url' => $url,
-                    'length' => (int)$len,
-                    'last_changed' => $lastChanged,
-                    'author' => $author,
-                    'summary' => $summary,
-                    'ns' => $namespace,
-                ];
+        foreach ($data['query']['pages'] as $page) {
+            if (!empty($page['missing']) || !empty($page['invalid'])) {
+                continue;
             }
+
+            $title = $page['title'] ?? '';
+            $len = $page['length'] ?? 0;
+
+            $lastChanged = '';
+            $author = '';
+            if (!empty($page['revisions'][0])) {
+                $lastChanged = $page['revisions'][0]['timestamp'] ?? '';
+                $author = $page['revisions'][0]['user'] ?? '';
+            }
+
+            $summary = '';
+            if (isset($page['description']) && trim((string) $page['description']) !== '') {
+                $summary = trim((string) $page['description']);
+            } elseif (isset($page['pageprops']['shortdesc']) && trim((string) $page['pageprops']['shortdesc']) !== '') {
+                $summary = trim((string) $page['pageprops']['shortdesc']);
+            } elseif ($withExtracts && isset($page['extract']) && trim((string) $page['extract']) !== '') {
+                $summary = trim((string) $page['extract']);
+            }
+
+            $summary = shorten($summary, $extractLength);
+
+            $pages[] = [
+                'title' => $title,
+                'display_title' => getDisplayTitle($title),
+                'url' => $page['fullurl'] ?? buildArticleUrl($articleBase, $title),
+                'length' => (int) $len,
+                'last_changed' => $lastChanged,
+                'author' => $author,
+                'summary' => $summary,
+                'ns' => $namespace,
+            ];
         }
     }
 
-    usort($pages, fn($a, $b) => strcmp($a['display_title'], $b['display_title']));
+    usort($pages, static fn(array $a, array $b): int => strcmp($a['display_title'], $b['display_title']));
     return $pages;
 }
 
@@ -326,10 +343,10 @@ function fetchPages(
     $result = [];
 
     foreach ($namespaces as $ns) {
-        $result[(int)$ns] = fetchPagesForNamespace(
+        $result[(int) $ns] = fetchPagesForNamespace(
             $apiEndpoint,
             $articleBase,
-            (int)$ns,
+            (int) $ns,
             $withExtracts,
             $extractLength,
             $excludeRedirects
@@ -339,7 +356,8 @@ function fetchPages(
     return $result;
 }
 
-function buildWikiText(array $pagesByNamespace, array $namespaceLabels): string {
+function buildWikiText(array $pagesByNamespace, array $namespaceLabels): string
+{
     $total = 0;
     foreach ($pagesByNamespace as $pages) {
         $total += count($pages);
@@ -348,13 +366,13 @@ function buildWikiText(array $pagesByNamespace, array $namespaceLabels): string 
     $out = [];
     $out[] = '__NOINDEX__';
     $out[] = '__NOEDITSECTION__';
-    $out[] = '{{SHORTDESC:Diese Seite wird tÃ¤glich automatisch per API-Skript erzeugt und listet alle Inhaltsseiten des Wiki nach NamensrÃ¤umen auf.}}';
+    $out[] = '{{SHORTDESC:Diese Seite wird täglich automatisch per API-Skript erzeugt und listet alle Inhaltsseiten des Wiki nach Namensräumen auf.}}';
     $out[] = ';Stand';
     $out[] = ':' . gmdate('Y-m-d H:i') . ' (UTC)';
     $out[] = '';
     $out[] = ';Anzahl Seiten gesamt';
-    $out[] = ':' . (string)$total;
-    $out[] = ' ';
+    $out[] = ':' . (string) $total;
+    $out[] = '';
 
     foreach ($pagesByNamespace as $ns => $pages) {
         $label = $namespaceLabels[$ns] ?? ('Namensraum ' . $ns);
@@ -362,21 +380,22 @@ function buildWikiText(array $pagesByNamespace, array $namespaceLabels): string 
         $out[] = '== ' . wikiEscape($label) . ' ==';
         $out[] = '';
         $out[] = ';Anzahl Seiten';
-        $out[] = (string)count($pages);
+        $out[] = ':' . (string) count($pages);
         $out[] = '';
-
         $out[] = '{| class="wikitable sortable"';
-        $out[] = '! Seite !! Web URL !! LÃ¤nge !! Letzte Ã„nderung !! Letzter Autor !! Kurzbeschreibung';
+        $out[] = '! Seite !! Länge !! Letzte Änderung !! Letzter Autor !! Kurzbeschreibung';
 
         foreach ($pages as $p) {
-            $date = $p['last_changed'] !== '' ? gmdate('Y-m-d H:i:s', strtotime($p['last_changed'])) . ' UTC' : '';
+            $date = $p['last_changed'] !== ''
+                ? gmdate('Y-m-d H:i:s', strtotime($p['last_changed'])) . ' UTC'
+                : '';
+
             $out[] = '|-';
             $out[] = '| [[' . $p['title'] . '|' . wikiEscape($p['display_title']) . ']]'
-                . ' || [' . $p['url'] . ' Link]'
-                . ' || ' . (string)$p['length']
+                . ' || ' . (string) $p['length']
                 . ' || ' . wikiEscape($date)
-                . ' || ' . wikiEscape((string)$p['author'])
-                . ' || ' . wikiEscape((string)$p['summary']);
+                . ' || ' . wikiEscape((string) $p['author'])
+                . ' || ' . wikiEscape((string) $p['summary']);
         }
 
         $out[] = '|}';
@@ -386,7 +405,8 @@ function buildWikiText(array $pagesByNamespace, array $namespaceLabels): string 
     return implode("\n", $out) . "\n";
 }
 
-function saveWikiPage(array &$cookieJar, string $apiEndpoint, string $title, string $text, string $summary, bool $markBotEdit, bool $minorEdit): array {
+function saveWikiPage(array &$cookieJar, string $apiEndpoint, string $title, string $text, string $summary, bool $markBotEdit, bool $minorEdit): array
+{
     $csrfToken = getCsrfToken($cookieJar, $apiEndpoint);
 
     $params = [
@@ -395,12 +415,13 @@ function saveWikiPage(array &$cookieJar, string $apiEndpoint, string $title, str
         'text' => $text,
         'summary' => $summary,
         'token' => $csrfToken,
-        'format' => 'json'
+        'format' => 'json',
     ];
 
     if ($markBotEdit) {
         $params['bot'] = 1;
     }
+
     if ($minorEdit) {
         $params['minor'] = 1;
     } else {
@@ -411,14 +432,12 @@ function saveWikiPage(array &$cookieJar, string $apiEndpoint, string $title, str
     if (($data['edit']['result'] ?? '') !== 'Success') {
         throw new RuntimeException('Seite konnte nicht gespeichert werden: ' . json_encode($data, JSON_UNESCAPED_UNICODE));
     }
+
     return $data;
 }
 
-// =========================
-// Hauptlogik
-// =========================
 try {
-    echo "Lese Seiten Ã¼ber API...\n";
+    echo "Lese Seiten über API...\n";
     $pagesByNamespace = fetchPages(
         $apiEndpoint,
         $articleBase,
@@ -433,6 +452,7 @@ try {
         echo 'Namensraum ' . $ns . ': ' . count($pages) . " Seiten\n";
         $total += count($pages);
     }
+
     echo 'Seiten gesamt: ' . $total . "\n";
 
     $wikiText = buildWikiText($pagesByNamespace, $namespaceLabels);
@@ -451,15 +471,13 @@ try {
     echo "Login an MediaWiki API...\n";
     login($cookieJar, $apiEndpoint, $username, $botPassword);
 
-    echo 'Speichere Seite "' . $targetPageTitle . "\" ...\n";
+    echo 'Speichere Seite "' . $targetPageTitle . '" ...' . "\n";
     $result = saveWikiPage($cookieJar, $apiEndpoint, $targetPageTitle, $wikiText, $summary, $markBotEdit, $minorEdit);
 
     echo "Erfolgreich gespeichert.\n";
     echo 'Seiten-ID: ' . ($result['edit']['pageid'] ?? 'n/a') . "\n";
     echo 'Titel: ' . ($result['edit']['title'] ?? $targetPageTitle) . "\n";
-
 } catch (Throwable $e) {
     fwrite(STDERR, 'FEHLER: ' . $e->getMessage() . "\n");
     exit(1);
 }
-
